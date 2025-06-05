@@ -100,12 +100,12 @@ class SuperMarioBrosEnv(NESEnv):
     @property
     def _world(self):
         """Return the current world (1 to 8)."""
-        return self.ram[0x075f] + 1
+        return int(self.ram[0x075f]) + 1
 
     @property
     def _stage(self):
         """Return the current stage (1 to 4)."""
-        return self.ram[0x075c] + 1
+        return int(self.ram[0x075c]) + 1
 
     @property
     def _area(self):
@@ -133,13 +133,13 @@ class SuperMarioBrosEnv(NESEnv):
     @property
     def _life(self):
         """Return the number of remaining lives."""
-        return self.ram[0x075a]
+        return int(self.ram[0x075a])
 
     @property
     def _x_position(self):
         """Return the current horizontal position."""
         # add the current page 0x6d to the current x
-        return self.ram[0x6d] * 0x100 + self.ram[0x86]
+        return int(self.ram[0x6d]) * 0x100 + int(self.ram[0x86])
 
     @property
     def _left_x_position(self):
@@ -174,9 +174,9 @@ class SuperMarioBrosEnv(NESEnv):
         # check if Mario is above the viewport (the score board area)
         if self._y_viewport < 1:
             # y position overflows so we start from 255 and add the offset
-            return 255 + (255 - self._y_pixel)
+            return 255 + (255 - int(self._y_pixel))
         # invert the y pixel into the distance from the bottom of the screen
-        return 255 - self._y_pixel
+        return 255 - int(self._y_pixel)
 
     @property
     def _player_status(self):

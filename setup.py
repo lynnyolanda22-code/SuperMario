@@ -8,8 +8,8 @@ with open('README.md') as README_md:
 
 
 setup(
-    name='gym_super_mario_bros',
-    version='7.4.0',
+    name='gym_super_mario_bros_fixed',
+    version='7.4.1',
     description='Super Mario Bros. for OpenAI Gym',
     long_description=README,
     long_description_content_type='text/markdown',
@@ -29,10 +29,11 @@ setup(
         'Operating System :: POSIX :: Linux',
         'Operating System :: Microsoft :: Windows',
         'Programming Language :: Python :: 3 :: Only',
-        'Programming Language :: Python :: 3.5',
-        'Programming Language :: Python :: 3.6',
-        'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 3.11',
+        'Programming Language :: Python :: 3.12',
         'Topic :: Games/Entertainment :: Side-Scrolling/Arcade Games',
         'Topic :: Scientific/Engineering :: Artificial Intelligence',
     ],

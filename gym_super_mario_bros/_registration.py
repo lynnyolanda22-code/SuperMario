@@ -26,7 +26,6 @@ def _register_mario_env(id, is_random=False, **kwargs):
     gym.envs.registration.register(
         id=id,
         entry_point=entry_point,
-        max_episode_steps=9999999,
         reward_threshold=9999999,
         kwargs=kwargs,
         nondeterministic=True,
