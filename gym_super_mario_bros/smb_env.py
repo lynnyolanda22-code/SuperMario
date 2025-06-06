@@ -1,5 +1,7 @@
 """An OpenAI Gym environment for Super Mario Bros. and Lost Levels."""
+
 from collections import defaultdict
+from typing import Optional
 from nes_py import NESEnv
 import numpy as np
 from ._roms import decode_target
@@ -7,7 +9,7 @@ from ._roms import rom_path
 
 
 # create a dictionary mapping value of status register to string names
-_STATUS_MAP = defaultdict(lambda: 'fireball', {0:'small', 1: 'tall'})
+_STATUS_MAP = defaultdict(lambda: "fireball", {0: "small", 1: "tall"})
 
 
 # a set of state values indicating that Mario is "busy"
@@ -31,7 +33,14 @@ class SuperMarioBrosEnv(NESEnv):
     # the legal range of rewards for each step
     reward_range = (-15, 15)
 
-    def __init__(self, rom_mode='vanilla', lost_levels=False, target=None):
+    def __init__(
+        self,
+        rom_mode="vanilla",
+        lost_levels=False,
+        target=None,
+        max_episode_steps: Optional[int] = None,
+        truncate_function: Optional[callable] = None,
+    ):
         """
         Initialize a new Super Mario Bros environment.
 
@@ -41,6 +50,11 @@ class SuperMarioBrosEnv(NESEnv):
                 - False: load original Super Mario Bros.
                 - True: load Super Mario Bros. Lost Levels
             target (tuple): a tuple of the (world, stage) to play as a level
+            max_episode_steps (int, optional): the maximum number of steps per episode before truncation
+            truncate_function (callable, optional): a function to determine if the episode should be truncated it must take the 4 following arguments:
+            - self: the environment instance (to possibly access / add instance variables)
+            - reward: the reward received from the last step
+            - info: the info dictionary returned from the last step
 
         Returns:
             None
@@ -57,6 +71,12 @@ class SuperMarioBrosEnv(NESEnv):
         self._time_last = 0
         # setup a variable to keep track of the last frames x position
         self._x_position_last = 0
+
+        # set the max episode steps and truncation function
+        self.current_episode_steps = 0
+        self.max_episode_steps = max_episode_steps
+        self.truncate_function = truncate_function
+
         # reset the emulator
         self.reset()
         # skip the start screen
@@ -90,22 +110,22 @@ class SuperMarioBrosEnv(NESEnv):
             the integer value of this 10's place representation
 
         """
-        return int(''.join(map(str, self.ram[address:address + length])))
+        return int("".join(map(str, self.ram[address : address + length])))
 
     @property
     def _level(self):
         """Return the level of the game."""
-        return self.ram[0x075f] * 4 + self.ram[0x075c]
+        return self.ram[0x075F] * 4 + self.ram[0x075C]
 
     @property
     def _world(self):
         """Return the current world (1 to 8)."""
-        return int(self.ram[0x075f]) + 1
+        return int(self.ram[0x075F]) + 1
 
     @property
     def _stage(self):
         """Return the current stage (1 to 4)."""
-        return int(self.ram[0x075c]) + 1
+        return int(self.ram[0x075C]) + 1
 
     @property
     def _area(self):
@@ -116,30 +136,30 @@ class SuperMarioBrosEnv(NESEnv):
     def _score(self):
         """Return the current player score (0 to 999990)."""
         # score is represented as a figure with 6 10's places
-        return self._read_mem_range(0x07de, 6)
+        return self._read_mem_range(0x07DE, 6)
 
     @property
     def _time(self):
         """Return the time left (0 to 999)."""
         # time is represented as a figure with 3 10's places
-        return self._read_mem_range(0x07f8, 3)
+        return self._read_mem_range(0x07F8, 3)
 
     @property
     def _coins(self):
         """Return the number of coins collected (0 to 99)."""
         # coins are represented as a figure with 2 10's places
-        return self._read_mem_range(0x07ed, 2)
+        return self._read_mem_range(0x07ED, 2)
 
     @property
     def _life(self):
         """Return the number of remaining lives."""
-        return int(self.ram[0x075a])
+        return int(self.ram[0x075A])
 
     @property
     def _x_position(self):
         """Return the current horizontal position."""
         # add the current page 0x6d to the current x
-        return int(self.ram[0x6d]) * 0x100 + int(self.ram[0x86])
+        return int(self.ram[0x6D]) * 0x100 + int(self.ram[0x86])
 
     @property
     def _left_x_position(self):
@@ -147,12 +167,12 @@ class SuperMarioBrosEnv(NESEnv):
         # TODO: resolve RuntimeWarning: overflow encountered in ubyte_scalars
         # subtract the left x position 0x071c from the current x 0x86
         # return (self.ram[0x86] - self.ram[0x071c]) % 256
-        return np.uint8(int(self.ram[0x86]) - int(self.ram[0x071c])) % 256
+        return np.uint8(int(self.ram[0x86]) - int(self.ram[0x071C])) % 256
 
     @property
     def _y_pixel(self):
         """Return the current vertical position."""
-        return self.ram[0x03b8]
+        return self.ram[0x03B8]
 
     @property
     def _y_viewport(self):
@@ -166,7 +186,7 @@ class SuperMarioBrosEnv(NESEnv):
             up to 5 indicates falling into a hole
 
         """
-        return self.ram[0x00b5]
+        return self.ram[0x00B5]
 
     @property
     def _y_position(self):
@@ -203,12 +223,12 @@ class SuperMarioBrosEnv(NESEnv):
             0x0C : Palette cycling, can't move
 
         """
-        return self.ram[0x000e]
+        return self.ram[0x000E]
 
     @property
     def _is_dying(self):
         """Return True if Mario is in dying animation, False otherwise."""
-        return self._player_state == 0x0b or self._y_viewport > 1
+        return self._player_state == 0x0B or self._y_viewport > 1
 
     @property
     def _is_dead(self):
@@ -220,7 +240,7 @@ class SuperMarioBrosEnv(NESEnv):
         """Return True if the game has ended, False otherwise."""
         # the life counter will get set to 255 (0xff) when there are no lives
         # left. It goes 2, 1, 0 for the 3 lives of the game
-        return self._life == 0xff
+        return self._life == 0xFF
 
     @property
     def _is_busy(self):
@@ -259,8 +279,8 @@ class SuperMarioBrosEnv(NESEnv):
 
     def _write_stage(self):
         """Write the stage data to RAM to overwrite loading the next stage."""
-        self.ram[0x075f] = self._target_world - 1
-        self.ram[0x075c] = self._target_stage - 1
+        self.ram[0x075F] = self._target_world - 1
+        self.ram[0x075C] = self._target_stage - 1
         self.ram[0x0760] = self._target_area - 1
 
     def _runout_prelevel_timer(self):
@@ -315,7 +335,7 @@ class SuperMarioBrosEnv(NESEnv):
     def _kill_mario(self):
         """Skip a death animation by forcing Mario to death."""
         # force Mario's state to dead
-        self.ram[0x000e] = 0x06
+        self.ram[0x000E] = 0x06
         # step forward one frame
         self._frame_advance(0)
 
@@ -416,6 +436,34 @@ class SuperMarioBrosEnv(NESEnv):
             x_pos=self._x_position,
             y_pos=self._y_position,
         )
+
+    def reset(self, **kwargs):
+        """
+        Reset the environment to the initial state.
+
+        Args:
+            **kwargs: additional keyword arguments
+
+        Returns:
+            observation: the initial observation of the environment
+
+        """
+        # reset the emulator
+        self.current_episode_steps = 0
+        return super(SuperMarioBrosEnv, self).reset(**kwargs)
+
+    def step(self, action):
+        # increment the current episode steps
+        self.current_episode_steps += 1
+        state, reward, done, info = super().step(action)
+        
+        # check whether the episode should be truncated
+        truncate = False
+        if self.max_episode_steps is not None and not done and self.current_episode_steps >= self.max_episode_steps:
+            truncate = True
+        if self.truncate_function is not None and not done:
+            truncate = truncate or self.truncate_function(self, reward, info)
+        return state, reward, done, truncate, info
 
 
 # explicitly define the outward facing API of this module
