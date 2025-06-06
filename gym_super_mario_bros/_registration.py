@@ -67,7 +67,6 @@ def _register_mario_stage_env(id, **kwargs):
     gym.envs.registration.register(
         id=id,
         entry_point='gym_super_mario_bros:SuperMarioBrosEnv',
-        max_episode_steps=9999999,
         reward_threshold=9999999,
         kwargs=kwargs,
         nondeterministic=True,
