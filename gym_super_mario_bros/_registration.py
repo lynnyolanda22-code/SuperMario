@@ -1,10 +1,10 @@
 """Registration code of Gym environments in this package."""
-import gym
+
+import gymnasium as gym
 
 
 def _register_mario_env(id, is_random=False, **kwargs):
-    """
-    Register a Super Mario Bros. (1/2) environment with OpenAI Gym.
+    """Register a Super Mario Bros. (1/2) environment with OpenAI Gym.
 
     Args:
         id (str): id for the env to register
@@ -18,12 +18,12 @@ def _register_mario_env(id, is_random=False, **kwargs):
     # if the is random flag is set
     if is_random:
         # set the entry point to the random level environment
-        entry_point = 'gym_super_mario_bros:SuperMarioBrosRandomStagesEnv'
+        entry_point = "gym_super_mario_bros:SuperMarioBrosRandomStagesEnv"
     else:
         # set the entry point to the standard Super Mario Bros. environment
-        entry_point = 'gym_super_mario_bros:SuperMarioBrosEnv'
+        entry_point = "gym_super_mario_bros:SuperMarioBrosEnv"
     # register the environment
-    gym.envs.registration.register(
+    gym.envs.registration.register(  # pyright: ignore[reportAttributeAccessIssue]
         id=id,
         entry_point=entry_point,
         reward_threshold=9999999,
@@ -33,27 +33,36 @@ def _register_mario_env(id, is_random=False, **kwargs):
 
 
 # Super Mario Bros.
-_register_mario_env('SuperMarioBros-Vanilla', rom_mode='vanilla')
-_register_mario_env('SuperMarioBros-Downsample', rom_mode='downsample')
-_register_mario_env('SuperMarioBros-Pixel', rom_mode='pixel')
-_register_mario_env('SuperMarioBros-Rectangle', rom_mode='rectangle')
+_register_mario_env("SuperMarioBros-Vanilla", rom_mode="vanilla")
+_register_mario_env("SuperMarioBros-Downsample", rom_mode="downsample")
+_register_mario_env("SuperMarioBros-Pixel", rom_mode="pixel")
+_register_mario_env("SuperMarioBros-Rectangle", rom_mode="rectangle")
 
 
 # Super Mario Bros. Random Levels
-_register_mario_env('SuperMarioBrosRandomStages-Vanilla', is_random=True, rom_mode='vanilla')
-_register_mario_env('SuperMarioBrosRandomStages-Downsample', is_random=True, rom_mode='downsample')
-_register_mario_env('SuperMarioBrosRandomStages-Pixel', is_random=True, rom_mode='pixel')
-_register_mario_env('SuperMarioBrosRandomStages-Rectangle', is_random=True, rom_mode='rectangle')
+_register_mario_env(
+    "SuperMarioBrosRandomStages-Vanilla", is_random=True, rom_mode="vanilla"
+)
+_register_mario_env(
+    "SuperMarioBrosRandomStages-Downsample", is_random=True, rom_mode="downsample"
+)
+_register_mario_env(
+    "SuperMarioBrosRandomStages-Pixel", is_random=True, rom_mode="pixel"
+)
+_register_mario_env(
+    "SuperMarioBrosRandomStages-Rectangle", is_random=True, rom_mode="rectangle"
+)
 
 
 # Super Mario Bros. 2 (Lost Levels)
-_register_mario_env('SuperMarioBros2-Vanilla', lost_levels=True, rom_mode='vanilla')
-_register_mario_env('SuperMarioBros2-Downsample', lost_levels=True, rom_mode='downsample')
+_register_mario_env("SuperMarioBros2-Vanilla", lost_levels=True, rom_mode="vanilla")
+_register_mario_env(
+    "SuperMarioBros2-Downsample", lost_levels=True, rom_mode="downsample"
+)
 
 
 def _register_mario_stage_env(id, **kwargs):
-    """
-    Register a Super Mario Bros. (1/2) stage environment with OpenAI Gym.
+    """Register a Super Mario Bros. (1/2) stage environment with OpenAI Gym.
 
     Args:
         id (str): id for the env to register
@@ -64,9 +73,9 @@ def _register_mario_stage_env(id, **kwargs):
 
     """
     # register the environment
-    gym.envs.registration.register(
+    gym.envs.registration.register(  # pyright: ignore[reportAttributeAccessIssue]
         id=id,
-        entry_point='gym_super_mario_bros:SuperMarioBrosEnv',
+        entry_point="gym_super_mario_bros:SuperMarioBrosEnv",
         reward_threshold=9999999,
         kwargs=kwargs,
         nondeterministic=True,
@@ -74,14 +83,9 @@ def _register_mario_stage_env(id, **kwargs):
 
 
 # a template for making individual stage environments
-_ID_TEMPLATE = 'SuperMarioBros{}-{}-{}-{}'
+_ID_TEMPLATE = "SuperMarioBros{}-{}-{}-{}"
 # A list of ROM modes for each level environment
-_ROM_MODES = [
-    'vanilla',
-    'downsample',
-    'pixel',
-    'rectangle'
-]
+_ROM_MODES = ["vanilla", "downsample", "pixel", "rectangle"]
 
 # iterate over all the rom modes, worlds (1-8), and stages (1-4)
 for rom_mode in _ROM_MODES:
@@ -90,7 +94,7 @@ for rom_mode in _ROM_MODES:
             # create the target
             target = (world, stage)
             # setup the frame-skipping environment
-            env_id = _ID_TEMPLATE.format('', world, stage, rom_mode.capitalize())
+            env_id = _ID_TEMPLATE.format("", world, stage, rom_mode.capitalize())
             _register_mario_stage_env(env_id, rom_mode=rom_mode, target=target)
 
 
@@ -99,4 +103,4 @@ make = gym.make
 
 
 # define the outward facing API of this module (none, gym provides the API)
-__all__ = [make.__name__]
+__all__ = [make.__name__]  # pyright: ignore [reportUnsupportedDunderAll]

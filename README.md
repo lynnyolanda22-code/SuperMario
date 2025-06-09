@@ -39,7 +39,7 @@ pip install gym-super-mario-bros
 You must import `gym_super_mario_bros` before trying to make an environment.
 This is because gym environments are registered at runtime. By default,
 `gym_super_mario_bros` environments use the full NES action space of 256
-discrete actions. To contstrain this, `gym_super_mario_bros.actions` provides
+discrete actions. To constrain this, `gym_super_mario_bros.actions` provides
 three actions lists (`RIGHT_ONLY`, `SIMPLE_MOVEMENT`, and `COMPLEX_MOVEMENT`)
 for the `nes_py.wrappers.JoypadSpace` wrapper. See
 [gym_super_mario_bros/actions.py](https://github.com/Kautenja/gym-super-mario-bros/blob/master/gym_super_mario_bros/actions.py) for a
@@ -55,8 +55,8 @@ env = JoypadSpace(env, SIMPLE_MOVEMENT)
 done = True
 for step in range(5000):
     if done:
-        state = env.reset()
-    state, reward, done, info = env.step(env.action_space.sample())
+        observation, info = env.reset()
+    observation, reward, terminated, truncated, info = env.step(env.action_space.sample())
     env.render()
 
 env.close()
@@ -169,7 +169,7 @@ The reward function assumes the objective of the game is to move as far right
 as possible (increase the agent's _x_ value), as fast as possible, without
 dying. To model this game, three separate variables compose the reward:
 
-1.  _v_: the difference in agent _x_ values between states
+1.  _v_: the difference in agent _x_ values between observations
     -   in this case this is instantaneous velocity for the given step
     -   _v = x1 - x0_
         -   _x0_ is the x position before the step
@@ -184,7 +184,7 @@ dying. To model this game, three separate variables compose the reward:
         -   _c1_ is the clock reading after the step
     -   no clock tick ⇔ _c = 0_
     -   clock tick ⇔ _c < 0_
-3.  _d_: a death penalty that penalizes the agent for dying in a state
+3.  _d_: a death penalty that penalizes the agent for dying during an episode
     -   this penalty encourages the agent to avoid death
     -   alive ⇔ _d = 0_
     -   dead ⇔ _d = -15_

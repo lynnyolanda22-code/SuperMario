@@ -1,15 +1,21 @@
-from gym_super_mario_bros import SuperMarioBrosEnv
+"""A script to test the speed of the Super Mario Bros. environment."""
+
 import tqdm
+
+from gym_super_mario_bros import SuperMarioBrosEnv
+
 env = SuperMarioBrosEnv()
 
-done = True
+terminated = True
 
 try:
     for _ in tqdm.tqdm(range(5000)):
-        if done:
-            state = env.reset()
-            done = False
+        if terminated:
+            observation, info = env.reset()
+            terminated = False
         else:
-            state, reward, done, info = env.step(env.action_space.sample())
+            observation, reward, terminated, truncated, info = env.step(
+                env.action_space.sample()
+            )
 except KeyboardInterrupt:
     pass

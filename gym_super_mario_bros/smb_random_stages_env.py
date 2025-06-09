@@ -1,6 +1,10 @@
 """An OpenAI Gym Super Mario Bros. environment that randomly selects levels."""
-import gym
+
+from collections.abc import Callable
+
+import gymnasium as gym
 import numpy as np
+
 from .smb_env import SuperMarioBrosEnv
 
 
@@ -19,20 +23,30 @@ class SuperMarioBrosRandomStagesEnv(gym.Env):
     # action space is a bitmap of button press values for the 8 NES buttons
     action_space = SuperMarioBrosEnv.action_space
 
-    def __init__(self, rom_mode='vanilla', stages=None):
-        """
-        Initialize a new Super Mario Bros environment.
+    def __init__(
+        self,
+        rom_mode="vanilla",
+        stages=None,
+        max_episode_steps: int | None = None,
+        truncate_function: Callable | None = None,
+    ):
+        """Initialize a new Super Mario Bros environment.
 
         Args:
             rom_mode (str): the ROM mode to use when loading ROMs from disk
             stages (list): select stages at random from a specific subset
+            max_episode_steps (int, optional): the maximum number of steps per episode before truncation
+            truncate_function (Callable, None): a function to determine if the episode should be truncated it must take the 3 following arguments:
+            - self: the environment instance (to possibly access / add instance variables)
+            - reward: the reward received from the last step
+            - info: the info dictionary returned from the last step
 
         Returns:
             None
 
         """
         # create a dedicated random number generator for the environment
-        self.np_random = np.random.RandomState()
+        self.np_random = np.random.default_rng()
         # setup the environments
         self.envs = []
         # iterate over the worlds in the game, i.e., {1, ..., 8}
@@ -44,7 +58,12 @@ class SuperMarioBrosRandomStagesEnv(gym.Env):
                 # create the target as a tuple of the world and stage
                 target = (world, stage)
                 # create the environment with the given ROM mode
-                env = SuperMarioBrosEnv(rom_mode=rom_mode, target=target)
+                env = SuperMarioBrosEnv(
+                    rom_mode=rom_mode,
+                    target=target,
+                    max_episode_steps=max_episode_steps,
+                    truncate_function=truncate_function,
+                )
                 # add the environment to the stage list for this world
                 self.envs[-1].append(env)
         # create a placeholder for the current environment
@@ -56,12 +75,12 @@ class SuperMarioBrosRandomStagesEnv(gym.Env):
 
     @property
     def screen(self):
-        """Return the screen from the underlying environment"""
+        """Return the screen from the underlying environment."""
+        assert self.env is not None, "Environment not initialized"
         return self.env.screen
 
     def seed(self, seed=None):
-        """
-        Set the seed for this environment's random number generator.
+        """Set the seed for this environment's random number generator.
 
         Returns:
             list<bigint>: Returns the list of seeds used in this env's random
@@ -75,71 +94,66 @@ class SuperMarioBrosRandomStagesEnv(gym.Env):
         if seed is None:
             return []
         # set the random number seed for the NumPy random number generator
-        self.np_random.seed(seed)
+        self.np_random = np.random.default_rng(seed)
         # return the list of seeds used by RNG(s) in the environment
         return [seed]
 
-    def reset(self, seed=None, options=None, return_info=None):
-        """
-        Reset the state of the environment and returns an initial observation.
+    def reset(self, *, seed=None, options=None):
+        """Reset the observation of the environment and returns an initial observation.
 
         Args:
             seed (int): an optional random number seed for the next episode
             options (dict): An optional options for resetting the environment.
                 Can include the key 'stages' to override the random set of
                 stages to sample from.
-            return_info (any): unused
 
         Returns:
-            state (np.ndarray): next frame as a result of the given action
+            observation (np.ndarray): next frame as a result of the given action
 
         """
         # Seed the RNG for this environment.
         self.seed(seed)
         # Get the collection of stages to sample from
         stages = self.stages
-        if options is not None and 'stages' in options:
-            stages = options['stages']
+        if options is not None and "stages" in options:
+            stages = options["stages"]
         # Select a random level
         if stages is not None and len(stages) > 0:
             level = self.np_random.choice(stages)
-            world, stage = level.split('-')
+            world, stage = level.split("-")
             world = int(world) - 1
             stage = int(stage) - 1
         else:
-            world = self.np_random.randint(1, 9) - 1
-            stage = self.np_random.randint(1, 5) - 1
+            world = self.np_random.integers(1, 9) - 1
+            stage = self.np_random.integers(1, 5) - 1
         # Set the environment based on the world and stage.
         self.env = self.envs[world][stage]
         # reset the environment
-        return self.env.reset(
-            seed=seed,
-            options=options,
-            return_info=return_info
-        )
+        return self.env.reset(seed=seed, options=options)
 
     def step(self, action):
-        """
-        Run one frame of the NES and return the relevant observation data.
+        """Run one frame of the NES and return the relevant observation data.
 
         Args:
             action (byte): the bitmap determining which buttons to press
 
         Returns:
             a tuple of:
-            - state (np.ndarray): next frame as a result of the given action
+            - observation (np.ndarray): next frame as a result of the given action
             - reward (float) : amount of reward returned after given action
-            - done (boolean): whether the episode has ended
+            - terminated (boolean): whether the episode has ended naturally or not (e.g., Mario died, Mario completed the stage)
+            - truncated (boolean): whether the episode was truncated due to a time limit
             - info (dict): contains auxiliary diagnostic information
 
         """
+        assert self.env is not None, "Environment not initialized"
         return self.env.step(action)
 
     def close(self):
         """Close the environment."""
         # make sure the environment hasn't already been closed
         if self.env is None:
-            raise ValueError('env has already been closed.')
+            raise ValueError("env has already been closed.")
         # iterate over each list of stages
         for stage_lists in self.envs:
             # iterate over each stage
@@ -152,9 +166,8 @@ class SuperMarioBrosRandomStagesEnv(gym.Env):
         if self.viewer is not None:
             self.viewer.close()
 
-    def render(self, mode='human'):
-        """
-        Render the environment.
+    def render(self, mode="human"):
+        """Render the environment.
 
         Args:
             mode (str): the mode to render with:
@@ -166,16 +179,20 @@ class SuperMarioBrosRandomStagesEnv(gym.Env):
             a numpy array if mode is 'rgb_array', None otherwise
 
         """
-        return SuperMarioBrosEnv.render(self, mode=mode)
+        return SuperMarioBrosEnv.render(self.env, mode=mode)
 
     def get_keys_to_action(self):
         """Return the dictionary of keyboard keys to actions."""
+        assert self.env is not None, "Environment not initialized"
         return self.env.get_keys_to_action()
 
     def get_action_meanings(self):
         """Return the list of strings describing the action space actions."""
+        assert self.env is not None, "Environment not initialized"
         return self.env.get_action_meanings()
 
 
 # explicitly define the outward facing API of this module
-__all__ = [SuperMarioBrosRandomStagesEnv.__name__]
+__all__ = [
+    SuperMarioBrosRandomStagesEnv.__name__
+]  # pyright: ignore [reportUnsupportedDunderAll]
