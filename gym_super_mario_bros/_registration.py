@@ -83,19 +83,35 @@ def _register_mario_stage_env(id, **kwargs):
 
 
 # a template for making individual stage environments
-_ID_TEMPLATE = "SuperMarioBros{}-{}-{}-{}"
+_ID_TEMPLATE = "SuperMarioBros-{}-{}-{}"
+_ID_TEMPLATE_LOST_LEVELS = "SuperMarioBros2-{}-{}-{}"
 # A list of ROM modes for each level environment
 _ROM_MODES = ["vanilla", "downsample", "pixel", "rectangle"]
+_ROM_MODES_LOST_LEVELS = ["vanilla", "downsample"]
 
-# iterate over all the rom modes, worlds (1-8), and stages (1-4)
+# iterate over all the rom modes for Super Mario Bros., worlds (1-8), and stages (1-4)
 for rom_mode in _ROM_MODES:
     for world in range(1, 9):
         for stage in range(1, 5):
             # create the target
             target = (world, stage)
             # setup the frame-skipping environment
-            env_id = _ID_TEMPLATE.format("", world, stage, rom_mode.capitalize())
+            env_id = _ID_TEMPLATE.format(world, stage, rom_mode.capitalize())
             _register_mario_stage_env(env_id, rom_mode=rom_mode, target=target)
+
+# iterate over all the rom modes for Super Mario Bros. 2 (Lost Levels), worlds (1-12), and stages (1-4)
+for rom_mode in _ROM_MODES_LOST_LEVELS:
+    for world in range(1, 13):
+        for stage in range(1, 5):
+            # create the target
+            target = (world, stage)
+            # setup the frame-skipping environment
+            env_id = _ID_TEMPLATE_LOST_LEVELS.format(
+                world, stage, rom_mode.capitalize()
+            )
+            _register_mario_stage_env(
+                env_id, rom_mode=rom_mode, target=target, lost_levels=True
+            )
 
 
 # create an alias to gym.make for ease of access

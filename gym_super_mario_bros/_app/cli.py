@@ -25,7 +25,7 @@ def _get_args():
         "--env",
         "-e",
         type=str,
-        default="SuperMarioBros-v0",
+        default="SuperMarioBros-Vanilla",
         help="The name of the environment to play",
     )
     parser.add_argument(
@@ -56,7 +56,13 @@ def _get_args():
         "-S",
         type=str,
         nargs="+",
-        help="The random stages to sample from for a random stage env",
+        help="The random stages to sample from for a random stage env.",
+    )
+    parser.add_argument(
+        "--list_envs",
+        "-l",
+        action="store_true",
+        help="List all available Super Mario Bros environments.",
     )
     # parse arguments and return them
     return parser.parse_args()
@@ -66,11 +72,27 @@ def main():
     """The main entry point for the command line interface."""
     # parse arguments from the command line (argparse validates arguments)
     args = _get_args()
+
+    # print all available environments if the list_envs flag is set
+    if args.list_envs:
+        available_envs = [
+            e.id
+            for e in gym.envs.registration.registry.values()  # pyright: ignore[reportAttributeAccessIssue]
+            if "SuperMarioBros" in e.id
+        ]
+        for env_id in available_envs:
+            print(env_id)
+        return
+
     if args.stages is not None and "RandomStages" not in args.env:
         print("--stages,-S should only be specified for RandomStages environments")
         sys.exit(1)
-    # build the environment with the given ID
-    env = gym.make(args.env, stages=args.stages)
+
+    # if the environment is a random stage environment, create it with the specified stages
+    if args.env.startswith("SuperMarioBrosRandomStages"):
+        env = gym.make(args.env, stages=args.stages)
+    else:
+        env = gym.make(args.env)
     # wrap the environment with an action space if specified
     if args.actionspace != "nes":
         print(args.actionspace)
