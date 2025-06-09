@@ -69,9 +69,9 @@ class ShouldMakeSuperMarioBrosRandomStages(ShouldMakeEnv, TestCase):
     # the amount of time left
     time = 300
     # the current world
-    world = 6
+    world = 4
     # the current stage
-    stage = 4
+    stage = 3
     # the environments ID for all VERSIONS of Super Mario Bros
     env_id = [f"SuperMarioBrosRandomStages-{v}" for v in VERSIONS]
 
