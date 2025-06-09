@@ -68,10 +68,9 @@ class SuperMarioBrosEnv(NESEnv):
             truncate_function=truncate_function,
         )
         # set the target world, stage, and area variables
-        target = decode_target(target, lost_levels)
-        if not isinstance(target, tuple):
-            raise TypeError("target must be of type tuple")
-        self._target_world, self._target_stage, self._target_area = target
+        self._target_world, self._target_stage, self._target_area = decode_target(
+            target, lost_levels
+        )
         # setup a variable to keep track of the last frames time
         self._time_last = 0
         # setup a variable to keep track of the last frames x position
