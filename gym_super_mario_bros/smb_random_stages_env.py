@@ -1,10 +1,11 @@
 """An OpenAI Gym Super Mario Bros. environment that randomly selects levels."""
 
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 
 import gymnasium as gym
 import numpy as np
 
+from .enums import SuperMarioBrosRandomMode, SuperMarioBrosROMMode
 from .smb_env import SuperMarioBrosEnv
 
 
@@ -26,16 +27,20 @@ class SuperMarioBrosRandomStagesEnv(gym.Env):
     def __init__(
         self,
         rom_mode="vanilla",
-        stages=None,
+        random_mode: SuperMarioBrosRandomMode = SuperMarioBrosRandomMode.SMB_ONLY,
+        stages: tuple[Iterable[str], Iterable[str]] = (set(), set()),
         max_episode_steps: int | None = None,
         truncate_function: Callable | None = None,
     ):
-        """Initialize a new Super Mario Bros environment.
+        """Initialize a new Random Stage Super Mario Bros environment.
+
+        This environment randomly selects stages from the Super Mario Bros. game(s) selected.
 
         Args:
-            rom_mode (str): the ROM mode to use when loading ROMs from disk
-            stages (list): select stages at random from a specific subset
-            max_episode_steps (int, optional): the maximum number of steps per episode before truncation
+            rom_mode (str): the ROM mode to use when loading ROMs from disk.
+            random_mode (SuperMarioBrosRandomMode): the mode to use for selecting stages.
+            stages (tuple[list[str], list[str]]): select stages at random from a specific subset. The first one for Super Mario Bros. level and the second one for Super Mario Bros. 2 levels.
+            max_episode_steps (int, optional): the maximum number of steps per episode before truncation.
             truncate_function (Callable, None): a function to determine if the episode should be truncated it must take the 3 following arguments:
             - self: the environment instance (to possibly access / add instance variables)
             - reward: the reward received from the last step
@@ -45,38 +50,74 @@ class SuperMarioBrosRandomStagesEnv(gym.Env):
             None
 
         """
+        if (
+            rom_mode not in SuperMarioBrosROMMode.lost_levels_values()
+            and random_mode.has_lost_levels
+        ):
+            raise ValueError(
+                f"rom_mode argument must be 'vanilla' or 'downsample' if you want to load stages from Super Mario Bros. 2 (Lost Levels). Got: {random_mode} mode."
+            )
+
         # create a dedicated random number generator for the environment
         self.np_random = np.random.default_rng()
         # setup the environments
         self.envs = []
-        # iterate over the worlds in the game, i.e., {1, ..., 8}
-        for world in range(1, 9):
-            # append a new list to put this world's stages into
-            self.envs.append([])
-            # iterate over the stages in the world, i.e., {1, ..., 4}
-            for stage in range(1, 5):
-                # create the target as a tuple of the world and stage
-                target = (world, stage)
-                # create the environment with the given ROM mode
-                env = SuperMarioBrosEnv(
-                    rom_mode=rom_mode,
-                    target=target,
-                    max_episode_steps=max_episode_steps,
-                    truncate_function=truncate_function,
+
+        # Check the correctness of the arguments
+        if (
+            not isinstance(stages, tuple)
+            or len(stages) != 2
+            or not isinstance(stages[0], Iterable)
+            or not isinstance(stages[1], Iterable)
+        ):
+            inside_types = []
+            if isinstance(stages, Iterable):
+                inside_types = [type(element) for element in stages]
+            raise ValueError(
+                f"stages argument must be of type tuple containing two elements of type set. Got stages of type: {type(stages)}. Containing: {inside_types}."
+            )
+        smb_only_stages, lost_levels_only_stages = stages
+        # if the stages are not provided, create a default set of stages
+        if random_mode.has_smb:
+            if not smb_only_stages:
+                smb_only_stages = {
+                    (world, stage) for world in range(1, 9) for stage in range(1, 5)
+                }
+            for target in smb_only_stages:
+                self.envs.append(
+                    SuperMarioBrosEnv(
+                        rom_mode=rom_mode,
+                        target=target,
+                        max_episode_steps=max_episode_steps,
+                        truncate_function=truncate_function,
+                    )
                 )
-                # add the environment to the stage list for this world
-                self.envs[-1].append(env)
-        # create a placeholder for the current environment
-        self.env = self.envs[0][0]
+
+        # if the stages are not provided, create a default set of stages
+        if random_mode.has_lost_levels:
+            if not lost_levels_only_stages:
+                lost_levels_only_stages = {
+                    (world, stage) for world in range(1, 5) for stage in range(1, 5)
+                }
+            for target in lost_levels_only_stages:
+                self.envs.append(
+                    SuperMarioBrosEnv(
+                        rom_mode=rom_mode,
+                        lost_levels=True,
+                        target=target,
+                        max_episode_steps=max_episode_steps,
+                        truncate_function=truncate_function,
+                    )
+                )
+
+        self.env = self.envs[0]
         # create a placeholder for the image viewer to render the screen
         self.viewer = None
-        # create a placeholder for the subset of stages to choose
-        self.stages = stages
 
     @property
     def screen(self):
         """Return the screen from the underlying environment."""
-        assert self.env is not None, "Environment not initialized"
+        assert self.env is not None, "Environment not initialized or closed."
         return self.env.screen
 
     def seed(self, seed=None):
@@ -113,21 +154,8 @@ class SuperMarioBrosRandomStagesEnv(gym.Env):
         """
         # Seed the RNG for this environment.
         self.seed(seed)
-        # Get the collection of stages to sample from
-        stages = self.stages
-        if options is not None and "stages" in options:
-            stages = options["stages"]
-        # Select a random level
-        if stages is not None and len(stages) > 0:
-            level = self.np_random.choice(stages)
-            world, stage = level.split("-")
-            world = int(world) - 1
-            stage = int(stage) - 1
-        else:
-            world = self.np_random.integers(1, 9) - 1
-            stage = self.np_random.integers(1, 5) - 1
-        # Set the environment based on the world and stage.
-        self.env = self.envs[world][stage]
+        # Choose a random level
+        self.env = self.np_random.choice(self.envs)
         # reset the environment
         return self.env.reset(seed=seed, options=options)
 
@@ -146,7 +174,7 @@ class SuperMarioBrosRandomStagesEnv(gym.Env):
             - info (dict): contains auxiliary diagnostic information
 
         """
-        assert self.env is not None, "Environment not initialized"
+        assert self.env is not None, "Environment not initialized or closed."
         return self.env.step(action)
 
     def close(self):
@@ -155,11 +183,8 @@ class SuperMarioBrosRandomStagesEnv(gym.Env):
         if self.env is None:
             raise ValueError("env has already been closed.")
         # iterate over each list of stages
-        for stage_lists in self.envs:
-            # iterate over each stage
-            for stage in stage_lists:
-                # close the environment
-                stage.close()
+        for env in self.envs:
+            env.close()
         # close the environment permanently
         self.env = None
         # if there is an image viewer open, delete it
@@ -183,16 +208,17 @@ class SuperMarioBrosRandomStagesEnv(gym.Env):
 
     def get_keys_to_action(self):
         """Return the dictionary of keyboard keys to actions."""
-        assert self.env is not None, "Environment not initialized"
+        assert self.env is not None, "Environment not initialized or closed."
         return self.env.get_keys_to_action()
 
     def get_action_meanings(self):
         """Return the list of strings describing the action space actions."""
-        assert self.env is not None, "Environment not initialized"
+        assert self.env is not None, "Environment not initialized or closed."
         return self.env.get_action_meanings()
 
 
 # explicitly define the outward facing API of this module
 __all__ = [
-    SuperMarioBrosRandomStagesEnv.__name__
+    SuperMarioBrosRandomStagesEnv.__name__,
+    SuperMarioBrosRandomMode.__name__,
 ]  # pyright: ignore [reportUnsupportedDunderAll]

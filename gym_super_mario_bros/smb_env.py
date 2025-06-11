@@ -73,8 +73,6 @@ class SuperMarioBrosEnv(NESEnv):
         )
         # setup a variable to keep track of the last frames time
         self._time_last = 0
-        # setup a variable to keep track of the last frames x position
-        self._x_position_last = 0
 
         # reset the emulator
         self.reset()
@@ -192,6 +190,10 @@ class SuperMarioBrosEnv(NESEnv):
         if self._y_viewport < 1:
             # y position overflows so we start from 255 and add the offset
             return 255 + (255 - int(self._y_pixel))
+        # check if Mario is under the viewport (falling into a pit)
+        elif self._y_viewport > 1:
+            # y position goes into the negatives on 8 bits
+            return -int(self._y_pixel) - 1
         # invert the y pixel into the distance from the bottom of the screen
         return 255 - int(self._y_pixel)
 
@@ -345,8 +347,7 @@ class SuperMarioBrosEnv(NESEnv):
     @property
     def _x_reward(self):
         """Return the reward based on left right movement between steps."""
-        _reward = self._x_position - self._x_position_last
-        self._x_position_last = self._x_position
+        _reward = self._x_position - self.last_frame_x_position
         # TODO: check whether this is still necessary
         # resolve an issue where after death the x position resets. The x delta
         # is typically has at most magnitude of 3, 5 is a safe bound
@@ -380,25 +381,25 @@ class SuperMarioBrosEnv(NESEnv):
     def _will_reset(self):
         """Handle and RAM hacking before a reset occurs."""
         self._time_last = 0
-        self._x_position_last = 0
 
     def _did_reset(self):
         """Handle any RAM hacking after a reset occurs."""
         self._time_last = self._time
-        self._x_position_last = self._x_position
+        self.last_frame_x_position = self._x_position
+        self.last_frame_y_position = self._y_position
 
-    def _did_step(self, terminated):
+    def _did_step(self, will_reset):
         """Handle any RAM hacking after a step occurs.
 
         Args:
-            terminated: whether the state flag is set to true
+            will_reset: whether the state flag is set to true
 
         Returns:
             None
 
         """
-        # if terminated flag is set a reset is incoming anyway, ignore any hacking
-        if terminated:
+        # if will_reset flag is set a reset is incoming anyway, ignore any hacking
+        if will_reset:
             return
         # if mario is dying, then cut to the chase and kill hi,
         if self._is_dying:
@@ -435,20 +436,9 @@ class SuperMarioBrosEnv(NESEnv):
             world=self._world,
             x_pos=self._x_position,
             y_pos=self._y_position,
+            x_speed=self._x_position - self.last_frame_x_position,
+            y_speed=self._y_position - self.last_frame_y_position,
         )
-
-    def reset(self, **kwargs):
-        """Reset the environment to the initial observation.
-
-        Args:
-            **kwargs: additional keyword arguments
-
-        Returns:
-            observation: the initial observation of the environment
-
-        """
-        # reset the emulator
-        return super().reset(**kwargs)
 
     def step(self, action):
         """Run one frame of the NES and return the relevant observation data.
@@ -464,6 +454,8 @@ class SuperMarioBrosEnv(NESEnv):
             - truncated (boolean): whether the episode was truncated by either reaching the maximum number of steps or the truncate function returning True
             - info (dict): contains auxiliary diagnostic information
         """
+        self.last_frame_x_position = self._x_position
+        self.last_frame_y_position = self._y_position
         return super().step(action)
 
 
