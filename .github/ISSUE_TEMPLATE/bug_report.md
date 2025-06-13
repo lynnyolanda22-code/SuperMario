@@ -10,7 +10,7 @@ A clear and concise description of what the bug is.
 
 ### Reproduction Script
 
-Provide a script to reproduce the error using the following template, 
+Provide a script to reproduce the error using the following template,
 replacing `<YOUR SCRIPT>` with your script:
 
 ```python

@@ -1,0 +1,5 @@
+[tool.pyright]
+include = ["gym_super_mario_bros"]
+exclude = ["**/tests/**", "**/__pycache__"]
+[tool.isort]
+profile = "black"
