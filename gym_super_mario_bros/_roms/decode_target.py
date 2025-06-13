@@ -2,7 +2,7 @@
 
 
 def decode_target(
-    target: None | tuple[int, int], lost_levels: bool
+    target: tuple[int, int] | None, lost_levels: bool
 ) -> tuple[int, int, int] | tuple[None, None, None]:
     """Return the target area for target world and target stage.
 
@@ -18,15 +18,21 @@ def decode_target(
     # Type and value check the lost levels parameter
     if not isinstance(lost_levels, bool):
         raise TypeError(
-            f"lost_levels argument must be of type: bool. Got: {type(lost_levels)}"
+            f"lost_levels argument must be of type: bool. Got: {type(lost_levels).__name__}"
         )
     # if there is no target, the world, stage, and area targets are all None
     if target is None:
         return None, None, None
 
-    if not isinstance(target, tuple):
-        raise TypeError(f"target argument must be of type tuple. Got: {type(target)}.")
+    if not isinstance(target, (tuple, list)):
+        raise TypeError(
+            f"target argument must be of type tuple. Got: {type(target).__name__}."
+        )
 
+    if len(target) != 2:
+        raise ValueError(
+            f"target argument must contain exactly two integers. Got length: {len(target)}"
+        )
     # unwrap the target world and stage
     target_world, target_stage = target
 

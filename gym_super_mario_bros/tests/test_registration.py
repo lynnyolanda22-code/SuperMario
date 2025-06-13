@@ -68,9 +68,9 @@ class ShouldMakeSuperMarioBrosRandomStagesSmbOnly(ShouldMakeEnv, TestCase):
     # the random number seed for this environment
     seed = 1
     # the amount of time left
-    time = 300
+    time = 400
     # the current world
-    world = 2
+    world = 4
     # the current stage
     stage = 4
     # the environments ID for all VERSIONS of Super Mario Bros
@@ -85,11 +85,11 @@ class ShouldMakeSuperMarioBrosRandomStagesLostLevelsOnly(ShouldMakeEnv, TestCase
     # the random number seed for this environment
     seed = 1
     # the amount of time left
-    time = 400
+    time = 300
     # the current world
-    world = 4
+    world = 2
     # the current stage
-    stage = 3
+    stage = 4
     # the environments ID for all VERSIONS of Super Mario Bros
 
     env_id = []
@@ -102,11 +102,11 @@ class ShouldMakeSuperMarioBrosRandomStagesBoth(ShouldMakeEnv, TestCase):
     # the random number seed for this environment
     seed = 1
     # the amount of time left
-    time = 400
+    time = 300
     # the current world
-    world = 4
+    world = 6
     # the current stage
-    stage = 1
+    stage = 3
     # the environments ID for all VERSIONS of Super Mario Bros
 
     env_id = []

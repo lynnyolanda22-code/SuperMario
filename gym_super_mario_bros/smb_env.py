@@ -35,9 +35,9 @@ class SuperMarioBrosEnv(NESEnv):
 
     def __init__(
         self,
-        rom_mode="vanilla",
-        lost_levels=False,
-        target=None,
+        rom_mode: str = "vanilla",
+        lost_levels: bool = False,
+        target: tuple[int, int] | None = None,
         max_episode_steps: int | None = None,
         truncate_function: Callable | None = None,
     ):
@@ -168,7 +168,7 @@ class SuperMarioBrosEnv(NESEnv):
     @property
     def _y_pixel(self):
         """Return the current vertical position."""
-        return self.ram[0x03B8]
+        return int(self.ram[0x03B8])
 
     @property
     def _y_viewport(self):
@@ -189,13 +189,13 @@ class SuperMarioBrosEnv(NESEnv):
         # check if Mario is above the viewport (the score board area)
         if self._y_viewport < 1:
             # y position overflows so we start from 255 and add the offset
-            return 255 + (255 - int(self._y_pixel))
+            return 255 + (255 - self._y_pixel)
         # check if Mario is under the viewport (falling into a pit)
         elif self._y_viewport > 1:
             # y position goes into the negatives on 8 bits
-            return -int(self._y_pixel) - 1
+            return -self._y_pixel - 1
         # invert the y pixel into the distance from the bottom of the screen
-        return 255 - int(self._y_pixel)
+        return 255 - self._y_pixel
 
     @property
     def _player_status(self):
