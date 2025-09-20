@@ -72,10 +72,13 @@ def create_game_frame(step_count, mario_x=10):
     
     # 添加背景颜色（模拟天空）
     frame[:, :, 2] = 135  # 蓝色天空
+    frame[:, :, 1] = 135
+    frame[:, :, 0] = 135
     
     # 添加地面
     frame[200:, :, 1] = 100  # 绿色地面
     frame[200:, :, 0] = 50
+    frame[200:, :, 2] = 0
     
     if HAS_CV2:
         # 使用OpenCV绘制图形
@@ -95,24 +98,24 @@ def create_game_frame(step_count, mario_x=10):
         cv2.circle(frame, (50, 50), 15, (255, 255, 255), -1)
         cv2.circle(frame, (60, 50), 15, (255, 255, 255), -1)
     else:
-        # 不使用OpenCV的简化版本
+        # 不使用OpenCV的简化版本 - 使用更明显的颜色
         # 马里奥（红色方块）
         if 0 <= mario_x < 240:
-            frame[180:200, mario_x:mario_x+20, 2] = 255  # 红色
+            frame[180:200, mario_x:mario_x+20, 0] = 255  # 红色
             frame[180:200, mario_x:mario_x+20, 1] = 0
-            frame[180:200, mario_x:mario_x+20, 0] = 0
+            frame[180:200, mario_x:mario_x+20, 2] = 0
         
         # 障碍物（棕色方块）
         if step_count > 50:
-            frame[190:200, 150:170, 2] = 200  # 棕色
+            frame[190:200, 150:170, 0] = 200  # 棕色
             frame[190:200, 150:170, 1] = 100
-            frame[190:200, 150:170, 0] = 0
+            frame[190:200, 150:170, 2] = 0
         
         # 金币（黄色区域）
         if step_count % 30 < 15:
-            frame[112:128, 92:108, 2] = 255  # 黄色
+            frame[112:128, 92:108, 0] = 255  # 黄色
             frame[112:128, 92:108, 1] = 255
-            frame[112:128, 92:108, 0] = 0
+            frame[112:128, 92:108, 2] = 0
         
         # 云朵（白色区域）
         frame[35:65, 35:85, :] = 255  # 白色
