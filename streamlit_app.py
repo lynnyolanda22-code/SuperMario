@@ -1,8 +1,15 @@
 import streamlit as st
 import numpy as np
-import cv2
 import time
 import random
+
+# 尝试导入OpenCV，如果失败则使用替代方案
+try:
+    import cv2
+    HAS_CV2 = True
+except ImportError:
+    HAS_CV2 = False
+    st.warning("OpenCV不可用，将使用简化版本")
 
 # 设置页面配置
 st.set_page_config(
@@ -70,22 +77,45 @@ def create_game_frame(step_count, mario_x=10):
     frame[200:, :, 1] = 100  # 绿色地面
     frame[200:, :, 0] = 50
     
-    # 添加一些简单的游戏元素
-    # 马里奥（红色方块）
-    if 0 <= mario_x < 240:
-        cv2.rectangle(frame, (mario_x, 180), (mario_x + 20, 200), (0, 0, 255), -1)
-    
-    # 障碍物（棕色方块）
-    if step_count > 50:
-        cv2.rectangle(frame, (150, 190), (170, 200), (0, 100, 200), -1)
-    
-    # 金币（黄色圆圈）
-    if step_count % 30 < 15:
-        cv2.circle(frame, (100, 120), 8, (0, 255, 255), -1)
-    
-    # 云朵（白色圆圈）
-    cv2.circle(frame, (50, 50), 15, (255, 255, 255), -1)
-    cv2.circle(frame, (60, 50), 15, (255, 255, 255), -1)
+    if HAS_CV2:
+        # 使用OpenCV绘制图形
+        # 马里奥（红色方块）
+        if 0 <= mario_x < 240:
+            cv2.rectangle(frame, (mario_x, 180), (mario_x + 20, 200), (0, 0, 255), -1)
+        
+        # 障碍物（棕色方块）
+        if step_count > 50:
+            cv2.rectangle(frame, (150, 190), (170, 200), (0, 100, 200), -1)
+        
+        # 金币（黄色圆圈）
+        if step_count % 30 < 15:
+            cv2.circle(frame, (100, 120), 8, (0, 255, 255), -1)
+        
+        # 云朵（白色圆圈）
+        cv2.circle(frame, (50, 50), 15, (255, 255, 255), -1)
+        cv2.circle(frame, (60, 50), 15, (255, 255, 255), -1)
+    else:
+        # 不使用OpenCV的简化版本
+        # 马里奥（红色方块）
+        if 0 <= mario_x < 240:
+            frame[180:200, mario_x:mario_x+20, 2] = 255  # 红色
+            frame[180:200, mario_x:mario_x+20, 1] = 0
+            frame[180:200, mario_x:mario_x+20, 0] = 0
+        
+        # 障碍物（棕色方块）
+        if step_count > 50:
+            frame[190:200, 150:170, 2] = 200  # 棕色
+            frame[190:200, 150:170, 1] = 100
+            frame[190:200, 150:170, 0] = 0
+        
+        # 金币（黄色区域）
+        if step_count % 30 < 15:
+            frame[112:128, 92:108, 2] = 255  # 黄色
+            frame[112:128, 92:108, 1] = 255
+            frame[112:128, 92:108, 0] = 0
+        
+        # 云朵（白色区域）
+        frame[35:65, 35:85, :] = 255  # 白色
     
     return frame
 
@@ -148,8 +178,20 @@ with col1:
                 )
                 
                 # 调整图像大小以适应显示
-                frame_resized = cv2.resize(frame, (400, 300))
-                game_placeholder.image(frame_resized, channels="BGR", use_column_width=True)
+                if HAS_CV2:
+                    frame_resized = cv2.resize(frame, (400, 300))
+                    game_placeholder.image(frame_resized, channels="BGR", use_column_width=True)
+                else:
+                    # 不使用OpenCV的简化版本
+                    frame_resized = np.zeros((300, 400, 3), dtype=np.uint8)
+                    # 简单的缩放
+                    for i in range(300):
+                        for j in range(400):
+                            src_i = int(i * 240 / 300)
+                            src_j = int(j * 256 / 400)
+                            if src_i < 240 and src_j < 256:
+                                frame_resized[i, j] = frame[src_i, src_j]
+                    game_placeholder.image(frame_resized, use_column_width=True)
                 
                 time.sleep(game_speed)
 
@@ -211,8 +253,20 @@ if st.sidebar.checkbox("自动游戏模式", value=False):
             st.session_state.game_state['mario_x']
         )
         
-        frame_resized = cv2.resize(frame, (400, 300))
-        game_placeholder.image(frame_resized, channels="BGR", use_column_width=True)
+        if HAS_CV2:
+            frame_resized = cv2.resize(frame, (400, 300))
+            game_placeholder.image(frame_resized, channels="BGR", use_column_width=True)
+        else:
+            # 不使用OpenCV的简化版本
+            frame_resized = np.zeros((300, 400, 3), dtype=np.uint8)
+            # 简单的缩放
+            for i in range(300):
+                for j in range(400):
+                    src_i = int(i * 240 / 300)
+                    src_j = int(j * 256 / 400)
+                    if src_i < 240 and src_j < 256:
+                        frame_resized[i, j] = frame[src_i, src_j]
+            game_placeholder.image(frame_resized, use_column_width=True)
         
         time.sleep(game_speed)
         st.rerun()
